@@ -117,13 +117,16 @@ def isConvergence(costF, max_iter):
     if math.isnan(np.sum(costF)):
         return False
     index = np.size(costF)
-    for i in range(index - 1):
-        if costF[i] < costF[i + 1]:
-            return False
+    # for i in range(index - 1):
+    #     if costF[i] < costF[i + 1]:
+    #         return False
+    if index > 1:
+        if costF[index - 1] == costF[index - 2]:
+            return True
     if index >= max_iter:
         return True
-    elif costF[index - 1] == costF[index - 2] == costF[index - 3]:
-        return True
+    # elif costF[index - 1] == costF[index - 2] == costF[index - 3]:
+    #     return True
     return 'continue'
 
 
@@ -136,9 +139,9 @@ def wkmeans(X, K, belta, max_iter, num):
     c = 0
     centroids = InitCentroids(X, K)
     for i in range(max_iter):
+        
         idx = findClosestCentroids(X, w, centroids, num)
-        centroids = computeCentroids(X, idx, K, num)
-        w = computeWeight(X, centroids, idx, K, belta, num)
+        
         c = costFunction(X, K, centroids, idx, w, belta, num)
         costF.append(round(c, 4))
         if i < 2:
@@ -151,9 +154,38 @@ def wkmeans(X, K, belta, max_iter, num):
             best_centers = centroids
             isConverge = True
             return isConverge, best_labels, best_centers, costF
-        else:
-            isConverge = False
-            return isConverge, None, None, costF
+        
+        centroids = computeCentroids(X, idx, K, num)
+        
+        c = costFunction(X, K, centroids, idx, w, belta, num)
+        costF.append(round(c, 4))
+        if i < 2:
+            continue
+        flag = isConvergence(costF, max_iter)
+        if flag == 'continue':
+            continue
+        elif flag:
+            best_labels = idx
+            best_centers = centroids
+            isConverge = True
+            return isConverge, best_labels, best_centers, costF
+        
+        w = computeWeight(X, centroids, idx, K, belta, num)
+        
+        c = costFunction(X, K, centroids, idx, w, belta, num)
+        costF.append(round(c, 4))
+        if i < 2:
+            continue
+        flag = isConvergence(costF, max_iter)
+        if flag == 'continue':
+            continue
+        elif flag:
+            best_labels = idx
+            best_centers = centroids
+            isConverge = True
+            return isConverge, best_labels, best_centers, costF
+    isConverge = False
+    return isConverge, None, None, costF
 
 
 class WKMeans:
@@ -222,28 +254,29 @@ def load_data():
 if __name__ == '__main__':
     from sklearn.cluster import KMeans
     #x, y = load_data()
-    data_AC = pd.read_csv("datasets/AC/AC.csv")          #获取数据mixed
-    Atr_AC = {}
-    Atr_AC['num'] = ['A2', 'A3', 'A7', 'A10', 'A13', 'A14']
-    Atr_AC['all'] = ["A{}".format(i+1) for i in range(14)]
-    Atr_AC['cat'] = list(set(Atr_AC['all']) - set(Atr_AC['num']))
-    #num存储的是数值属性的列索引
-    num = np.array([data_AC.columns.get_loc(c) for c in data_AC.columns if c in Atr_AC['num']])
+    data_AI = pd.read_csv("datasets/AI/AI.csv")          #获取数据mixed
+    Atr_AI = {}
+    Atr_AI['num'] = ['A1', 'A3', 'A11', 'A12', 'A13']
+    Atr_AI['all'] = ["A{}".format(i+1) for i in range(14)]
+    Atr_AI['cat'] = list(set(Atr_AI['all']) - set(Atr_AI['num']))
     #对num数据进行归一化
     scaler = MinMaxScaler()
-    data_AC[Atr_AC['num']] = scaler.fit_transform(data_AC[Atr_AC['num']])
-    Atr_AC['label'] = 'class'
-    k = 2
-    size_num = data_AC.shape[0]
-    size_dim = data_AC.shape[1]
+    data_AI[Atr_AI['num']] = scaler.fit_transform(data_AI[Atr_AI['num']])
+    Atr_AI['label'] = 'class'
+    #num存储的是数值属性的列索引
+    num = np.array([data_AI.columns.get_loc(c) for c in data_AI.columns if c in Atr_AI['num']])
+    #对num数据进行归一化
+    # scaler = MinMaxScaler()
+    # data_BC[Atr_BC['num']] = scaler.fit_transform(data_BC[Atr_BC['num']])
+    k = 3
+    size_num = data_AI.shape[0]
+    size_dim = data_AI.shape[1]
     #取LG_data的前size_dim-1列
-    x = data_AC[Atr_AC['all']]
+    x = data_AI[Atr_AI['all']]
     # x = data_LG.iloc[:, 0:size_dim - 1]
     x = x.values
-    #将x归一化
-    # x = StandardScaler().fit_transform(x)
     #y为数据最后一列
-    y = data_AC[Atr_AC['label']]
+    y = data_AI[Atr_AI['label']]
     y = y.values
     #将y转换为一维数组
     y = y.ravel()
@@ -310,7 +343,14 @@ if __name__ == '__main__':
     
     plt.show()
 
-
-# result:
-# NMI by sklearn:  0.7581756800057784
-# NMI by wkmeans:  0.8130427037493443
+# AI dataset's result
+# accurrancy's mean by wkmeans:  0.5044101388149544
+# accurrancy's std by wkmeans:  0.06203686197408052
+# ARI's mean by wkmeans:  0.003665528440121407
+# ARI's std by wkmeans:  0.043838397832537776
+# NMI's mean by wkmeans:  0.05966439623606347
+# NMI's std by wkmeans:  0.03901773484793324
+# SC's mean by wkmeans:  0.011224343756414772
+# SC's std by wkmeans:  0.025881804521576037
+# CH's mean by wkmeans:  1050.4319098685423
+# CH's std by wkmeans:  1033.2065781373913
